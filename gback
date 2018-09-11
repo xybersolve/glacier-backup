@@ -53,12 +53,22 @@ declare -ri MIN_ARG_COUNT=1
 declare -r SYNTAX=$(cat <<EOF
 
     Script: ${PROGNAME}
-    Purpose:
+    Purpose: Wraps AWS Glacier backup of local files & directories
     Usage: ${PROGNAME} [options]
 
     Options:
       --help:  help and usage
       --version: show version info
+      --create-vault: create vault defined in conf file
+      --get-policy: get vault policy
+      --list-vaults: list all vaults
+      --list-jobs: list all current jobs
+      --show-vault: show vault defined in conf file
+      --upload-prints: upload prints, opinionated for local system, vis conf file
+      --upload-all-prints: upload all prints from local system, per conf file
+      --set-notification: set SNS notification
+      --get-inventory: get inventory of vault defined in conf file
+      --upload-file=<filename): upload specific file
 
 EOF
 )
@@ -170,6 +180,7 @@ __get_archive() {
 }
 
 __check_extension() {
+  # generc extension test
   local extension="${1}"
   case "$extension" in
     jpeg | jpg | tif )
@@ -180,6 +191,7 @@ __check_extension() {
 }
 
 __upload_file() {
+  # stubbed out file upload
   local file=${1}
   [[ -z ${file} || ! -f ${file} ]] && die "No file to upload: ${file}"
   local extension="${file##*.}"
@@ -191,17 +203,16 @@ __upload_file() {
   #aws glacier upload-archive --vault-name "${VAULT_NAME}" --account-id "$ACCOUNT_ARN" --body "${file}"
 }
 
-__upload_files() {
+__upload_files_in_dir() {
+  # stubbed out
   for file in ~/Pictures/; do
     echo "${file}"
   done
-  #aws glacier upload-archive --account-id - --vault-name foo-vault --body foo.zip
-  #aws glacier initiate-multipart-upload --account-id - --archive-description "multipart upload test" --part-size 1048576 --vault-name myvault
-  #aws glacier complete-multipart-upload --checksum $TREEHASH --archive-size 3145728 --upload-id $UPLOADID --account-id - --vault-name myvault
 }
 
-__upload_all_prints() {
-  for dir in ${ALL_PRINT_DIRS}; do
+__upload_prints() {
+  # upload all image files in predefined directories
+  for dir in ${TEST_DIRS}; do
     find ${dir} -type f | egrep '\.(jpg|jpeg|tif|png)$' | while read file; do
       __upload_print "${file}"
     done
@@ -209,6 +220,7 @@ __upload_all_prints() {
 }
 
 __upload_print(){
+  # upload of each print to archive
   local file="${1}"
   local filename="$( basename ${file} )"
   echo "Uploading file to archive: ${file}: ${filename}"
@@ -219,7 +231,6 @@ __upload_print(){
     --archive-description ${filename} \
     --body ${file} >> gback.uploads.txt
 
-
   # upload-archive
   # --vault-name <value>
   # --account-id <value>
@@ -228,33 +239,31 @@ __upload_print(){
   # [--body <value>]
   # [--cli-input-json <value>]
   # [--generate-cli-skeleton <value>]
-
-     #>> gback.uploads.txt
-  #aws glacier upload-archive --account-id ${ACCOUNT_ARN} --vault-name "${VAULT_NAME}" --body "${file}" >> gback.uploads.txt
+  # >> gback.uploads.txt
 }
 
-__upload_prints_2() {
-  for dir in ${PRINT_DIRS}; do
-    find ${dir} -type f | egrep '\.(jpg|jpeg|tif|png)$' | while read file; do
-      __upload_print "${file}"
-    done
-  done
-  #find . -exec bash -c 'dosomething "$0"' {} \;
-  # | while read file; do dosomething "$file"; done
-}
-
-__upload_prints() {
-  for dir in ${PRINT_DIRS}; do
-    #find ${dir} -maxdepth 1 -type f -exec ... \;
-    for object in ${dir}/*; do
-      ## eventually unroll each directory
-      [[ -d "${object}" ]] && echo "Directory: ${object}"
-      ## if it is a file - upload it
-      [[ -f "${object}" ]] && __upload_file "${object}"
-      #echo "${file}"
-    done
-  done
-}
+# __upload_prints_2() {
+#   for dir in ${PRINT_DIRS}; do
+#     find ${dir} -type f | egrep '\.(jpg|jpeg|tif|png)$' | while read file; do
+#       __upload_print "${file}"
+#     done
+#   done
+#   #find . -exec bash -c 'dosomething "$0"' {} \;
+#   # | while read file; do dosomething "$file"; done
+# }
+#
+# __upload_prints() {
+#   for dir in ${PRINT_DIRS}; do
+#     #find ${dir} -maxdepth 1 -type f -exec ... \;
+#     for object in ${dir}/*; do
+#       ## eventually unroll each directory
+#       [[ -d "${object}" ]] && echo "Directory: ${object}"
+#       ## if it is a file - upload it
+#       [[ -f "${object}" ]] && __upload_file "${object}"
+#       #echo "${file}"
+#     done
+#   done
+# }
 
 __get_opts() {
   while (( $# > 0 )); do

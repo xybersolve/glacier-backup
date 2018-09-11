@@ -2,23 +2,17 @@
 #
 #  Distribute scripts to active script bin
 #
-declare PROJECT_DIR=~/bin/xs-swarm
+declare PROJECT_DIR=~/bin/glacier-backup
 declare BIN_DIR=~/bin
 
 __copy() {
   # move project files into script bin
   local file=''
   local -ra files=(
-    'alm'
-    'asg'
-    'clrs.sh'
-    'ec2'
-    'ec2.sh'
-    'ec2.conf.sh'
-    'img'
-    'mon'
-    'mtr'
-    'namespaces.sh'
+    'gback'
+    'gback.conf.sh'
+    'gback.notification.conf.json'
+    'gback.uploads.txt'
   )
   printf "\n"
   for file in "${files[@]}"; do
