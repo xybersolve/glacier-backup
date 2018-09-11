@@ -40,4 +40,12 @@ $ gback --help
 
 ```
 
+### Copy script specific files to working bash bin directory (opinionated).
+
+```sh
+
+  $ ./dist --copy
+
+```
+
 ## [License](LICENSE.md)
