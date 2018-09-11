@@ -8,15 +8,15 @@ gback.conf.sample.sh: stubbed out sample of actual required configuration file.
 > To defined backup jobs, do following and then define AWS and local variables
 within conf file.
 
-`sh
+```sh
 
 $ cp gback.conf.sample.sh gback.conf.sh
 
-`
+```
 
 ## Glacier Backup Help
 
-`sh
+```sh
 
 $ gback --help
 
@@ -38,6 +38,6 @@ $ gback --help
      --get-inventory: get inventory of vault defined in conf file
      --upload-file=<filename): upload specific file
 
-`
+```
 
 ## [License](LICENSE.md)
