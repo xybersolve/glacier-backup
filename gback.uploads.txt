@@ -1,0 +1,11 @@
+{
+    "archiveId": "mcxRr-WpMevS-RSdJjoz15uITD6yrgxpF96jv4YDCK2lJXQFZV-6ksHwgWRj9is5n5fZP8RXb-vmn9e6PNCL3tdk_XYm6Wh_0H7SaNCpP3xtDHG2YGmkVDL_GVBG399EHPpig3QCCQ", 
+    "checksum": "b91dfb612ab75da2478019f76f27256872ef0314af640b81f59d81c7d6f5a0ae", 
+    "location": "/734741078887/vaults/GregMilliganPhotography/archives/mcxRr-WpMevS-RSdJjoz15uITD6yrgxpF96jv4YDCK2lJXQFZV-6ksHwgWRj9is5n5fZP8RXb-vmn9e6PNCL3tdk_XYm6Wh_0H7SaNCpP3xtDHG2YGmkVDL_GVBG399EHPpig3QCCQ"
+}
+{
+    "archiveId": "RtmDo1JlP6lIgtGN1QaRJJ-E-eKKoLcO8Iygw00DF0v_HMPGnJ8vOUUQQRN0UP_mIILNuT1Hz7mwoq9rNA3-_nAZgaCgFujICvcKsOl4G6ndHmxKk2uvI8ASvE8Kem7xXaaCNenV6Q", 
+    "checksum": "b91dfb612ab75da2478019f76f27256872ef0314af640b81f59d81c7d6f5a0ae", 
+    "location": "/734741078887/vaults/GregMilliganPhotography/archives/RtmDo1JlP6lIgtGN1QaRJJ-E-eKKoLcO8Iygw00DF0v_HMPGnJ8vOUUQQRN0UP_mIILNuT1Hz7mwoq9rNA3-_nAZgaCgFujICvcKsOl4G6ndHmxKk2uvI8ASvE8Kem7xXaaCNenV6Q"
+}
+aws glacier upload-archive --account-id - --vault-name GregMilliganPhotography --body /Users/Greg/Pictures/MilliganMedia/Prints/WebReady/APathInTheBambooGarden-ModernAntique-0828-960x640.jpg

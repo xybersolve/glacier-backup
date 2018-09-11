@@ -1,0 +1,309 @@
+#!/usr/bin/env bash
+# ================================================================
+# -*- mode: bash -*-
+# vi: set ft=sh
+# ****************************************************************
+#
+# DESCRIPTION
+#    Script template for full bodied script
+#
+# SYNTAX & EXAMPLES
+#    See 'SYNTAX' (below)
+#
+# ----------------------------------------------------------------
+# IMPLEMENTATION
+#    version         script 0.1.1
+#    author          Greg Milligan
+#    copyright       Copyright (c) 2018 http://xybersolve.io
+#    license         GNU General Public License
+#
+# ================================================================
+#  DEBUG OPTION
+#    set -n  # Uncomment to check your syntax, without execution.
+#    set -x  # Uncomment to debug this shell script
+#
+# ---------------------------------------------------------------
+#
+# TODO:
+# ****************************************************************
+
+
+# ---------------------------------------
+# CONFIGFURATION
+# ---------------------------------------
+# strict environment
+set -o errexit  # exit on command error status
+set -o nounset  # no unreadonlyd variables
+set -o pipefail # failr on pipe failures
+trap 'echo "Aborting due to errexit on line $LINENO. Exit code: ${?}" >&2' ERR
+
+# ---------------------------------------
+# GLOBAL VARIABLES
+# ---------------------------------------
+# booleans
+declare -ir TRUE=1
+declare -ir FALSE=0
+# script info
+
+declare -r PROGNAME="$( basename ${0} )"
+declare -r VERSION=0.0.1
+declare -r SUBJECT=""
+declare -r KEYS=""
+declare -ri MIN_ARG_COUNT=1
+declare -r SYNTAX=$(cat <<EOF
+
+    Script: ${PROGNAME}
+    Purpose:
+    Usage: ${PROGNAME} [options]
+
+    Options:
+      --help:  help and usage
+      --version: show version info
+
+EOF
+)
+# files & directories
+declare -r SCRIPT_DIR="$( dirname ${0} )"
+declare -r CONF_FILE="${SCRIPT_DIR}/gback.conf.sh"
+
+# actions
+declare -i CREATE_VAULT=${FALSE}
+declare -i GET_POLICY=${FALSE}
+declare -i LIST_VAULTS=${FALSE}
+declare -i SHOW_VAULT=${FALSE}
+declare -i LIST_JOBS=${FALSE}
+declare -i SET_NOTIFICATION=${FALSE}
+declare -i GET_INVENTORY=${FALSE}
+declare -i GET_ARCHIVE=${FALSE}
+declare -i UPLOAD_FILES=${FALSE}
+declare -i UPLOAD_FILE=${FALSE}
+declare -i UPLOAD_PRINTS=${FALSE}
+declare -i UPLOAD_ALL_PRINTS=${FALSE}
+
+# script globals
+declare FILE=''
+declare DATESTAMP=''
+
+# ---------------------------------------
+# COMMON FUNCTIONS
+# ---------------------------------------
+usage() {
+  echo "${SYNTAX}"
+}
+
+error() {
+  printf "\n%s\n" "Error: ${1}"
+}
+
+die() {
+  error "${1}"
+  usage
+  printf "\n\n"
+  exit "${2:-1}"
+}
+
+show_version() {
+  printf "\n\n%s  %s\n\n\n" "${PROGNAME}" "${VERSION}"
+  exit 0
+}
+
+show_help() {
+  printf "\n\n"
+  usage
+  printf "\n\n"
+  exit 0
+}
+
+# ---------------------------------------
+# MAIN ROUTINES
+# ---------------------------------------
+#
+#  Notes:
+#  -- Overhead
+#   To reduce size overhead (32kb per object)
+#   Zip or tar small files (e.g., ~/bin), to reduce overhead costs
+#   1kb objects incur 97% of cost as overhead meta-data
+#   3.2MB incur 1% overhead cost
+#
+#
+source "${CONF_FILE}" || die "Unabvle to load configuration file ${CONF_FILE}" 1
+
+__create_vault() {
+  aws glacier create-vault --account-id - --vault-name ${VAULT_NAME}
+}
+
+__get_policy() {
+  aws glacier get-vault-access-policy \
+    --account-id - \
+    --vault-name ${VAULT_NAME}
+}
+
+__delete_vault() {
+  aws glacier delete-vault \
+    --account-id - \
+    --vault-name ${VAULT_NAME}
+}
+
+__list_vaults() {
+  aws glacier list-vaults --account-id ${ACCOUNT_ID}
+}
+
+__list_jobs() {
+    aws glacier list-jobs --account-id ${ACCOUNT_ID} --vault-name ${VAULT_NAME}
+}
+
+__show_vault() {
+  aws glacier describe-vault --account-id ${ACCOUNT_ID} --vault-name ${VAULT_NAME}
+}
+
+__set_notification() {
+  local notification_conf_file="${SCRIPT_DIR}/gback.notification.conf.json"
+  aws glacier set-vault-notifications --account-id - --vault-name ${VAULT_NAME} --vault-notification-config file://${notification_conf_file}
+}
+__get_inventory() {
+  aws glacier initiate-job --account-id - --vault-name ${VAULT_NAME} --job-parameters '{"Type": "inventory-retrieval"}'
+}
+
+__get_archive() {
+  local inventory_file="${SCRIPT_DIR}/gback.archive.inventory.json"
+  aws glacier initiate-job --account-id - --vault-name ${VAULT_NAME} --job-parameters file://${inventory_file}
+}
+
+__check_extension() {
+  local extension="${1}"
+  case "$extension" in
+    jpeg | jpg | tif )
+      return 0 ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+__upload_file() {
+  local file=${1}
+  [[ -z ${file} || ! -f ${file} ]] && die "No file to upload: ${file}"
+  local extension="${file##*.}"
+  if __check_extension ${extension}; then
+    echo ${file}
+  else
+    echo "Illegal file: ${file}"
+  fi
+  #aws glacier upload-archive --vault-name "${VAULT_NAME}" --account-id "$ACCOUNT_ARN" --body "${file}"
+}
+
+__upload_files() {
+  for file in ~/Pictures/; do
+    echo "${file}"
+  done
+  #aws glacier upload-archive --account-id - --vault-name foo-vault --body foo.zip
+  #aws glacier initiate-multipart-upload --account-id - --archive-description "multipart upload test" --part-size 1048576 --vault-name myvault
+  #aws glacier complete-multipart-upload --checksum $TREEHASH --archive-size 3145728 --upload-id $UPLOADID --account-id - --vault-name myvault
+}
+
+__upload_all_prints() {
+  for dir in ${ALL_PRINT_DIRS}; do
+    find ${dir} -type f | egrep '\.(jpg|jpeg|tif|png)$' | while read file; do
+      __upload_print "${file}"
+    done
+  done
+}
+
+__upload_print(){
+  local file="${1}"
+  local filename="$( basename ${file} )"
+  echo "Uploading file to archive: ${file}: ${filename}"
+  #echo aws glacier upload-archive --account-id - --vault-name "${VAULT_NAME}" --body "${file}"  #>> gback.uploads.txt
+  aws glacier upload-archive \
+    --vault-name ${VAULT_NAME} \
+    --account-id - \
+    --archive-description ${filename} \
+    --body ${file} >> gback.uploads.txt
+
+
+  # upload-archive
+  # --vault-name <value>
+  # --account-id <value>
+  # [--archive-description <value>]
+  # [--checksum <value>]
+  # [--body <value>]
+  # [--cli-input-json <value>]
+  # [--generate-cli-skeleton <value>]
+
+     #>> gback.uploads.txt
+  #aws glacier upload-archive --account-id ${ACCOUNT_ARN} --vault-name "${VAULT_NAME}" --body "${file}" >> gback.uploads.txt
+}
+
+__upload_prints_2() {
+  for dir in ${PRINT_DIRS}; do
+    find ${dir} -type f | egrep '\.(jpg|jpeg|tif|png)$' | while read file; do
+      __upload_print "${file}"
+    done
+  done
+  #find . -exec bash -c 'dosomething "$0"' {} \;
+  # | while read file; do dosomething "$file"; done
+}
+
+__upload_prints() {
+  for dir in ${PRINT_DIRS}; do
+    #find ${dir} -maxdepth 1 -type f -exec ... \;
+    for object in ${dir}/*; do
+      ## eventually unroll each directory
+      [[ -d "${object}" ]] && echo "Directory: ${object}"
+      ## if it is a file - upload it
+      [[ -f "${object}" ]] && __upload_file "${object}"
+      #echo "${file}"
+    done
+  done
+}
+
+__get_opts() {
+  while (( $# > 0 )); do
+    local arg="${1}"; shift;
+    case ${arg} in
+      --help)    show_help                ;;
+      --version) show_version             ;;
+
+      --create-vault) CREATE_VAULT=${TRUE} ;;
+      --get-policy) GET_POLICY=${TRUE}     ;;
+      --list-vaults*) LIST_VAULTS=${TRUE}  ;;
+      --list-jobs*) LIST_JOBS=${TRUE}      ;;
+      --show-vault) SHOW_VAULT=${TRUE}     ;;
+      --upload-prints)  UPLOAD_PRINTS=${TRUE}  ;;
+      --upload-all-prints) UPLOAD_ALL_PRINTS=${TRUE}  ;;
+      --set-notification) SET_NOTIFICATION=${TRUE} ;;
+      --get-inventory) GET_INVENTORY=${TRUE} ;;
+      --upload-file*)
+        UPLOAD_FILE=${TRUE}
+        [[ ${arg} =~ '=' ]] && FILE="${arg#*=}"
+        ;;
+
+      *) die "Unknown option: ${arg}" ;;
+   esac
+  done
+  return 0
+}
+
+__dispatch() {
+  (( CREATE_VAULT )) && __create_vault
+  (( GET_POLICY )) && __get_policy
+  (( LIST_VAULTS )) && __list_vaults
+  (( LIST_JOBS )) && __list_jobs
+  (( SET_NOTIFICATION )) && __set_notification
+  (( SHOW_VAULT )) && __show_vault
+  (( GET_INVENTORY )) && __get_inventory
+  (( GET_ARCHIVE )) && __get_archive
+  (( UPLOAD_FILE )) && __upload_file
+  (( UPLOAD_PRINTS )) && __upload_prints_2
+  (( UPLOAD_ALL_PRINTS )) && __upload_all_prints
+  return 0
+}
+
+main() {
+  (( ${#} < MIN_ARG_COUNT )) && die "Expects at least ${MIN_ARG_COUNT} arguments" 1
+  (( $# > 0 )) && __get_opts "$@"
+
+  __dispatch
+
+  return 0
+}
+(( ${#} > 0 )) && main "${@}" || main

@@ -1,0 +1,4 @@
+{
+  "SNSTopic": "arn:aws:sns:us-west-2:734741078887:GMP-Glacier",
+  "Events": ["ArchiveRetrievalCompleted", "InventoryRetrievalCompleted"]
+}
